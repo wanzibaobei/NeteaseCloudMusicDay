@@ -1,34 +1,35 @@
-name: Python Package using Conda
+name: 网易云音乐日推自动创建歌单
 
-on: [push]
+on:
+  schedule:
+    # * is a special character in YAML so you have to quote this string
+    - cron:  '0 0/3 * * *'
 
 jobs:
-  build-linux:
+  build:
+
     runs-on: ubuntu-latest
-    strategy:
-      max-parallel: 5
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Set up Python 3.10
-      uses: actions/setup-python@v3
-      with:
-        python-version: '3.10'
-    - name: Add conda to system path
+    - name: 更新为中国时间
       run: |
-        # $CONDA is an environment variable pointing to the root of the miniconda directory
-        echo $CONDA/bin >> $GITHUB_PATH
-    - name: Install dependencies
+        sudo rm -rf /etc/localtime 
+        sudo ln -s /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
+        date
+    - name: 安装网易云api
+      run: git clone https://github.com/shanghaobo/NeteaseCloudMusicApi.git
+    - name: 运行网易云api
       run: |
-        conda env update --file environment.yml --name base
-    - name: Lint with flake8
-      run: |
-        conda install flake8
-        # stop the build if there are Python syntax errors or undefined names
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-    - name: Test with pytest
-      run: |
-        conda install pytest
-        pytest
+        cd NeteaseCloudMusicApi
+        npm install
+        nohup node app.js &
+    - name: 安装并脚本
+      run: git clone https://github.com/shanghaobo/NeteaseCloudMusicDay.git
+    - name: 设置api
+      run: echo "api='http://127.0.0.1:3000'" >> NeteaseCloudMusicDay/config.py
+    - name: 设置网易云音乐登录账号
+      run: echo "phone='13507626469'" >> NeteaseCloudMusicDay/config.py
+    - name: 设置网易云音乐登录密码
+      run: echo "password='Sun2021079866'" >> NeteaseCloudMusicDay/config.py
+    - name: 运行脚本
+      run: python3 NeteaseCloudMusicDay/main2.py
